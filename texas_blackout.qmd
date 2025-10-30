@@ -3,25 +3,38 @@ title: "Impact of severe weather on the power grid"
 author: "Lauren Puffer"
 format: html
 editor: visual
+embed-resources: true
+page-loading: false
+code-fold: show
+execute: 
+  warning: false
+  message: false
+toc: TRUE
+theme: journal
 ---
 
-## Quarto
+# Introduction
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+# Data Sources
 
-## Running Code
-
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+# Load packages
 
 ```{r}
-1 + 1
+#| message: false
+#| warning: false 
+library(terra)
+library(tmap)
+library(here)
+library(janitor)
+library(tidyverse)
+library(kableExtra) # table formatting
+library(spData) # spatial data
+library(spDataLarge) # spatial data
+library(geodata)
 ```
 
-You can add options to executable code like this
-
 ```{r}
-#| echo: false
-2 * 2
+
 ```
 
 The `echo: false` option disables the printing of code (only output is displayed).
