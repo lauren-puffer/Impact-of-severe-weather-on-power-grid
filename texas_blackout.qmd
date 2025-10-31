@@ -17,6 +17,8 @@ theme: journal
 
 # Data Sources
 
+Open Street Map: <https://planet.openstreetmap.org/>
+
 # Load packages
 
 ```{r}
@@ -31,10 +33,188 @@ library(kableExtra) # table formatting
 library(spData) # spatial data
 library(spDataLarge) # spatial data
 library(geodata)
+library(stars)
 ```
+
+# Load data
+
+## Light raster of Houston, TX
+
+Read in raster data for Houston, TX.
+
+```{r}
+# read tile at 10:38 from Feb 7th 2021 in Houston
+houston05_02_07 <- read_stars(here("data", "VNP46A1", "VNP46A1.A2021038.h08v05.001.2021039064328.tif"))
+
+# read tile at 10:38 from Feb 7th 2021 in Houston
+houston06_02_07 <- read_stars(here("data", "VNP46A1", "VNP46A1.A2021038.h08v06.001.2021039064329.tif"))
+
+# read tile at 10:47 from Feb 16th 2021 in Houston
+houston05_02_16 <- read_stars(here("data", "VNP46A1", "VNP46A1.A2021047.h08v05.001.2021048091106.tif"))
+
+# read tile at 10:47 from Feb 16th 2021 in Houston
+houston06_02_16 <- read_stars(here("data", "VNP46A1", "VNP46A1.A2021047.h08v06.001.2021048091105.tif"))
+```
+
+## Roads vector of Houston, TX
+
+Read in vector data of roads in Houston, TX.
+
+```{r}
+# get roads as a vector
+roads <- st_read(here("data", "gis_osm_roads_free_1.gpkg"), 
+                 query = "SELECT * FROM gis_osm_roads_free_1 WHERE fclass='motorway'")
+
+# make a vector for roads
+roads_vec <- vect(roads)
+```
+
+## Buildings
+
+```{r}
+# get buildings as a vector
+buildings <- st_read(here("data", "gis_osm_buildings_a_free_1.gpkg"),
+                     query = "SELECT * FROM gis_osm_buildings_a_free_1 WHERE (type IS NULL AND name IS NULL) OR type in ('residential', 'apartments', 'house','static_caravan', 'detached')", 
+                     quiet= TRUE)
+
+# make a vector of buildings
+buidlings_vec <- vect(buildings)
+```
+
+## Census data from Texas
+
+We will need to use a datasbase that has geometries and combine it with our 'census' dataframe. Our 'census' datafram contains GEOID's which will allow us to join with another dataset conatining the correct geometries needed to check the CRS and complete our analysis.
+
+```{r}
+# get list of layers in .gdb
+st_layers(here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb"))
+
+# load census geopackage for 2019
+census_geo <- st_read(here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb"), 
+                  layer = "ACS_2019_5YR_TRACT_48_Texas", 
+                  quiet = TRUE)|>
+  st_make_valid()
+
+# load census income for 2019
+census_income <- st_read(here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb"), 
+                  layer = "X19_INCOME", 
+                  quiet = TRUE)
+
+# left join income and geometry
+census_join <- left_join(census_geo, census_income, by = "GEOID")
+```
+
+# Coordinate Reference Systems
+
+In order to ensure that all of our data is compatible spatially, we must make sure that they are all using the same Coordinate Reference System. Some spatial data is stored based on different maps or different units. For example, one dataset may be using meters for spatial data, while another is using degrees.
+
+To ensure that our spatial data matches in CRS, we will first have to check what the CRS's are for each.
+
+## Checking CRSs
+
+Assuming all of the tile data are in the same CRS, we will test the CRS of one of them.
+
+```{r}
+# get CRS of Houston light data (06 tile)
+st_crs(houston06_02_07)
+
+# get CRS of Houston light data (05 tile)
+st_crs(houston05_02_16)
+
+# check that they match
+st_crs(houston06_02_07) == st_crs(houston05_02_16) # they do!
+```
+
+The Houston light data uses WGS 84 (EPSG 4326). We will match all of our other data to this CRS using the st_transform() function.
+
+Now we will transform our roads vector to match the CRS of the Houston light data (EPSG 4326).
+
+```{r}
+# check CRS of roads
+st_crs(roads_vec) # roads also use EPSG 4326!
+
+# double check that they are an exact match
+st_crs(roads_vec) == st_crs(houston06_02_16) # true!
+```
+
+The roads from Open Street Map share the same CRS as the Houston light data. Now, we can check to see that the demographic data from the U.S. Census Bureau matches as well. It is likely that because the U.S. Census data and
+
+## Change CRSs to match
+
+```{r}
+# check to see if the census data has a CRS
+st_crs(census_join) == st_crs(roads_vec) # false
+
+# check CRS of census data
+st_crs(census_join)
+
+# use st_transform() to change the CRS of census data
+census_join_reproj <- st_transform (census_join, st_crs(houston05_02_07))
+
+# check that CRSs match
+st_crs(census_join_reproj) == st_crs(houston05_02_07) # true!
+```
+
+Now that all of the CRSs match for all of our data, we can begin our data manipulations to prepare them for analysis.
+
+# Houston blackout map
+
+To better understand which areas were impacted by the February 16th blackout, we will subtract the cell values in our light intensity tiles from before and after the blackout to get the difference.
+
+## Combine tiles by date
+
+We must first combine the February 7th and February 16th rasters, as they both represent different parts of the city.
+
+```{r}
+# combine feb 7th rasters
+feb_7_combined <- st_mosaic(houston06_02_07, houston05_02_07)
+
+# combine feb 16th rasters
+feb_16_combined <- st_mosaic(houston06_02_16, houston05_02_07)
+```
+
+## Difference in light intensity
+
+In order to see the severity of the blackout by looking at the difference between light intensity before and after the blackout. We will do this by subtracting the cell values from the blackout date, from the cell values the week before (February 7th).
+
+```{r}
+# get the difference
+difference <- feb_7_combined - feb_16_combined
+
+# make any values with <200 an NA
+difference[difference <= 200] <- NA
+```
+
+Now we need to make a vector of the difference so that we can create a mask of areas which were impacted by the blackout.
+
+```{r}
+# create a vector of the difference
+mask_sf <- st_as_sf(difference, as_points = FALSE, merge = TRUE) |>
+  st_make_valid()
+
+```
+
+Now, we will create a bounding box for the city of Houston.
+
+```{r}
+# create bbox for the city of Houston
+houston_boundary <- st_bbox(c(
+  xmin = -96.5,
+  ymin = 29,
+  xmax = -94.5,
+  ymax = 30.5
+), crs = st_crs(4326))  # WGS84 lon/lat
+
+# vectorize the boundary
+houston <- st_as_sfc(houston_boundary)
+```
+
+## Crop blackout mask
+
+We will use st_intersects() with the Houston boundary box and the difference mask to get the areas that are within the boundary.
 
 ```{r}
 
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+## 
