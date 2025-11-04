@@ -183,20 +183,16 @@ We will plot the light intensity map before and after the blackout. To do this, 
 # load 'viridis' package for visuals
 library(viridisLite)
 
-val_range <- range(c(feb_7_combined[[1]], feb_16_combined[[1]]), na.rm = TRUE)
-
 
 # plot combined Feb 7th raster
 feb_7_plot <- plot(feb_7_combined,
      col = viridis(256), # color palette
-          zlim = feb_7_combined[[1]], # ensure same color mapping
      main = "Before - Feb 7, 2021",
      axes = TRUE)
 
 # plot combined Feb 16th raster
 feb_16_plot <- plot(feb_16_combined,
      col = viridis(256),
-     zlim = feb_16_combined[[1]],
      main = "After - Feb 16, 2021",
      axes = TRUE)
 
@@ -215,9 +211,6 @@ difference <- feb_7_combined - feb_16_combined
 
 # make any values with <200 an NA
 difference[difference <= 200] <- NA
-
-# plot the difference
-plot(difference)
 ```
 
 Now we need to make a vector of the difference so that we can create a mask of areas which were impacted by the blackout.
@@ -261,18 +254,50 @@ tm_shape(blackout_houston)+
   tm_polygons()
 ```
 
+Now that we have a map of more intense blackouts, we can bring in the roads data and exclude any polygons within 200m of the road.
+
+## Change CRS to meters
+
+We have a roads vector which shares the same CRS as our other data, but because we want to create a buffer that is in meters, we have to change the CRS. Houston, TX is in UTM 15. We should be able to preserve the spatial data we have and convert to UTM 15 (EPSG 32615) from WGS 84 (EPSG 4326).
+
+```{r}
+# check roads CRS
+st_crs(roads) # EPSG 4326
+
+# change to a CRS that uses meters
+roads_trans <- st_transform(roads, crs = 32615)
+
+# check the CRS of "blackout_houston"
+st_crs(blackout_houston) # 4326
+
+# change CRS to match "roads_trans"
+blackout_houston_trans <- st_transform(blackout_houston, crs = 32615)
+```
+
+## Creating a 200m buffer around roads
+
+Now that our roads and blackout polygons are both both in CRSs that use meters, we must add a buffer to our roads. In order to do this, we must make them into a vector. We will do this by "expanding" the geometry of the roads to 200m.
+
+```{r}
+# create 200 m buffer around roads
+roads_buffer_200m <- st_buffer(roads_trans, dist = units :: set_units(200, "m"))
+
+# use st_union() to bombine roads and buffers
+roads_union <- st_union(roads_buffer_200m)
+```
+
 # Map of homes that lost power
 
 Now, we want to see which homes lost power from the storm. Since we already have a map of polygons with strong differences in light intensity, we can use st_intersects to keep only the homes and bulidings that overlap with the areas of strong power loss.
 
 ```{r}
 # check that crs match
-st_crs(blackout_houston) == st_crs(buildings_vec) # true
+#st_crs(blackout_houston) == st_crs(buildings_vec) # true
 
 # make blackout houston into vector data
-blackout_mask <- st_as_sf(blackout_houston)
+#blackout_mask <- st_as_sf(blackout_houston)
 
 # use st_intersects to get homes that overlap with power loss
-blackout_buildings <- buildings[buildings %>% st_intersects(blackout_houston, sparse = FALSE), ]
+#blackout_buildings <- buildings[buildings %>% st_intersects(blackout_houston, sparse = FALSE), ]
 
 ```
