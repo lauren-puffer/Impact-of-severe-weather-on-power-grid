@@ -258,20 +258,20 @@ Now that we have a map of more intense blackouts, we can bring in the roads data
 
 ## Change CRS to meters
 
-We have a roads vector which shares the same CRS as our other data, but because we want to create a buffer that is in meters, we have to change the CRS. Houston, TX is in UTM 15. We should be able to preserve the spatial data we have and convert to UTM 15 (EPSG 32615) from WGS 84 (EPSG 4326).
+We have a roads vector which shares the same CRS as our other data, but because we want to create a buffer that is in meters, we have to change the CRS. Houston, TX uses EPSG 3083. We should be able to preserve the spatial data we have and convert to EPSG 3083 from WGS 84 (EPSG 4326).
 
 ```{r}
 # check roads CRS
 st_crs(roads) # EPSG 4326
 
 # change to a CRS that uses meters
-roads_trans <- st_transform(roads, crs = 32615)
+roads_trans <- st_transform(roads, crs = 3083)
 
 # check the CRS of "blackout_houston"
 st_crs(blackout_houston) # 4326
 
 # change CRS to match "roads_trans"
-blackout_houston_trans <- st_transform(blackout_houston, crs = 32615)
+blackout_houston_trans <- st_transform(blackout_houston, crs = 3083)
 ```
 
 ## Creating a 200m buffer around roads
@@ -286,9 +286,48 @@ roads_buffer_200m <- st_buffer(roads_trans, dist = units :: set_units(200, "m"))
 roads_union <- st_union(roads_buffer_200m)
 ```
 
+## Exclude polygons touching roads
+
+Because roads are associated with larger changes in light intensity, we want to exclude them from our maps. We will do this by using st_difference() to keep only the parts of our blackout polygons that are outside of the 200 m buffer zone.
+
+St_disjoint() would have also worked, but would have excluded any polygons touching the roads at all.
+
+```{r}
+# check classes
+class(roads_union)
+class(blackout_houston_trans)
+
+# check CRS
+st_crs(blackout_houston_trans) == st_crs(roads_union) # EPSG 3083
+
+# get list of polygons that don't intersect
+disjoint_index <- st_disjoint(blackout_houston_trans, roads_union)
+# anything with a 0 in this list intersects with roads
+
+# make logic out of list
+disjoint_logical <- lengths(disjoint_index) != 0
+
+# keep polygons that don't intersect with 200 m roads buffer
+no_roads_blackout <- blackout_houston_trans[disjoint_logical, ]
+```
+
 # Map of homes that lost power
 
 Now, we want to see which homes lost power from the storm. Since we already have a map of polygons with strong differences in light intensity, we can use st_intersects to keep only the homes and bulidings that overlap with the areas of strong power loss.
+
+## Convert CRS back to EPSG 4326
+
+Because we had to create a buffer in meters, our no_roads_blackout sf is no loner in EPSG 4326, but is instead in EPSG 3083. We will fix this by converting it back right now.
+
+```{r}
+# convert blackout map back to 4326
+no_roads_blackout_trans <- st_transform(no_roads_blackout, crs = 4326)
+
+# check to make sure it matches 'buildings'
+st_crs(no_roads_blackout_trans) == st_crs(buildings) # true!
+```
+
+Now that our CRSs match, we can find homes and buildings that overlap with our blackout areas. This will allow us to get both a map of the homes that experienced blackout, and a total \# of homes that experienced blackout as well.
 
 ```{r}
 # check that crs match
