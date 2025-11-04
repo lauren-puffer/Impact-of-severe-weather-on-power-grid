@@ -168,9 +168,26 @@ We must first combine the February 7th and February 16th rasters, as they both r
 ```{r}
 # combine feb 7th rasters
 feb_7_combined <- st_mosaic(houston06_02_07, houston05_02_07)
+plot(feb_7_combined)
 
 # combine feb 16th rasters
 feb_16_combined <- st_mosaic(houston06_02_16, houston05_02_07)
+```
+
+## Plot before and after
+
+We will plot the light intensity map before and after the blackout. To do this, we will use tmap.
+
+```{r}
+# make a plot of light intensity on feb 7th
+feb_7_plot <- tm_shape(feb_7_combined)+
+  tm_polygons()+
+  tm_title(text = "Light intensity before")
+
+# make a plot of light intensity on feb 16th
+feb_16_plot <- tm_shape(feb_16_combined)+
+  tm_raster()+
+  tm_title(text = "Light intensity after")
 ```
 
 ## Difference in light intensity
@@ -183,6 +200,9 @@ difference <- feb_7_combined - feb_16_combined
 
 # make any values with <200 an NA
 difference[difference <= 200] <- NA
+
+# plot the difference
+plot(difference)
 ```
 
 Now we need to make a vector of the difference so that we can create a mask of areas which were impacted by the blackout.
@@ -192,6 +212,7 @@ Now we need to make a vector of the difference so that we can create a mask of a
 mask_sf <- st_as_sf(difference, as_points = FALSE, merge = TRUE) |>
   st_make_valid()
 
+plot(mask_sf)
 ```
 
 Now, we will create a bounding box for the city of Houston.
@@ -207,6 +228,8 @@ houston_boundary <- st_bbox(c(
 
 # vectorize the boundary
 houston <- st_as_sfc(houston_boundary)
+
+st_crs(houston)
 ```
 
 ## Crop blackout mask
@@ -214,7 +237,17 @@ houston <- st_as_sfc(houston_boundary)
 We will use st_intersects() with the Houston boundary box and the difference mask to get the areas that are within the boundary.
 
 ```{r}
+# get crs of mask
+st_crs(mask_sf) # 4326
 
+# use st_intersects() to get just the area of blackout difference in the bbox
+mask_houston <- mask_sf[mask_sf %>% st_intersects(houston, sparse = FALSE), ]
+
+plot(mask_houston)
+
+
+# use st_tranform to match crs
+blackout_transform <- st_transform(mask_houston)
 ```
 
 ## 
