@@ -331,12 +331,17 @@ Now that our CRSs match, we can find homes and buildings that overlap with our b
 
 ```{r}
 # check that crs match
-#st_crs(blackout_houston) == st_crs(buildings_vec) # true
+st_crs(no_roads_blackout_trans) == st_crs(buildings) # true
 
-# make blackout houston into vector data
-#blackout_mask <- st_as_sf(blackout_houston)
+# get buildings that intersect the no_roads polygons
+intersect_index <- st_intersects(buildings, no_roads_blackout_trans)
 
-# use st_intersects to get homes that overlap with power loss
-#blackout_buildings <- buildings[buildings %>% st_intersects(blackout_houston, sparse = FALSE), ]
+# keep buildings that have at least one intersection
+blackout_buildings <- buildings[lengths(intersect_index) > 0, ]
 
+# get the sum of homes that experienced blackout
+print(nrow(blackout_buildings))
 ```
+
+The total number of homes affected by the blackout was 133,804. This is also the number of observations we had in our "blackout_buildings" sf. Each building is one polygon in the 'geometry' column. 
+
