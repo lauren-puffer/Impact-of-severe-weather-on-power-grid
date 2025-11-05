@@ -334,14 +334,63 @@ Now that our CRSs match, we can find homes and buildings that overlap with our b
 st_crs(no_roads_blackout_trans) == st_crs(buildings) # true
 
 # get buildings that intersect the no_roads polygons
-intersect_index <- st_intersects(buildings, no_roads_blackout_trans)
-
-# keep buildings that have at least one intersection
-blackout_buildings <- buildings[lengths(intersect_index) > 0, ]
+blackout_buildings <- buildings |>
+  st_filter(y = no_roads_blackout_trans, .predicate = st_intersects)
 
 # get the sum of homes that experienced blackout
 print(nrow(blackout_buildings))
 ```
 
-The total number of homes affected by the blackout was 133,804. This is also the number of observations we had in our "blackout_buildings" sf. Each building is one polygon in the 'geometry' column. 
+The total number of homes affected by the blackout was **133,804**. This is also the number of observations we had in our "blackout_buildings" sf. Each building is one polygon in the 'geometry' column.
 
+## Map of homes that lost power
+
+Now, we can use tmap to create a map of the homes that lost their power as a result of the February storms in Houston, TX.
+
+```{r}
+# plot map of blackout_buildings
+tm_shape(houston)+
+  tm_polygons()+
+  tm_shape(roads)+
+  tm_lines()+
+  tm_shape(blackout_buildings)+
+  tm_bubbles(size = 0.2,
+          col = "red")+
+  tm_title(text = "Homes that experienced blackout")+
+  tm_scalebar(position = "bottom")+
+  tm_compass()
+```
+
+# Median income of households
+
+Next, we would like to know what the median income of households experiencing blackout was. To do this, we want to get the census tract data of homes that experienced blackouts. We will use the U.S. Census data we have for spatial information of the census tract each home belongs to, and get income information from that data. The median income of all homes experiencing blackout will require us to assign a median household income to each home, according to which census tract it belongs to.
+
+## Census tracts that lost power
+
+Now we can create a map of census tracts which lost power. We will do this by filtering the census tract polygons to include those that have overlapping geometries with buildings that experienced blackout.
+
+```{r}
+# check CRSs
+st_crs(census_join) == st_crs(blackout_buildings) # false
+
+# change CRS of census data to match buildings
+census_trans <- st_transform(census_join, crs = 4326)
+
+#check CRS now
+st_crs(census_trans) == st_crs(blackout_buildings) # true!
+
+# get tracts with buildings in them
+census_blackout <- census_trans |>
+  st_filter(y = blackout_buildings, .predicate = st_intersects)
+
+# plot using tmap
+tm_shape(houston)+
+  tm_polygons("grey80")+
+  tm_shape(census_join)+
+  tm_polygons()+
+  tm_shape(census_blackout)+
+  tm_polygons(fill = "red")+
+  tm_title(text = "Map of Census Tracts Experiencing Blackout")+
+  tm_scalebar(position = "bottom")+
+  tm_compass()
+```
