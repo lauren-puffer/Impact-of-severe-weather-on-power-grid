@@ -1,6 +1,7 @@
 ---
 title: "Impact of severe weather on the power grid"
 author: "Lauren Puffer"
+date: "2025-11-07"
 format: html
 editor: visual
 embed-resources: true
