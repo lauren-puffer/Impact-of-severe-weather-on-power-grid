@@ -20,6 +20,10 @@ theme: journal
 
 Open Street Map: <https://planet.openstreetmap.org/>
 
+U.S. Census: <https://www.census.gov/data/datasets.html>
+
+Blackout data:
+
 # Load packages
 
 ```{r}
@@ -41,45 +45,56 @@ library(stars)
 
 ## Light raster of Houston, TX
 
-Read in raster data for Houston, TX.
+Raster data of light intensity from before (February 7th, 2021) and after (February 16th, 2021) is contained in the following rasters. Because Houston is such a large city, we must bring two "tiles" together to create a complete map of the cities light intensity on these two days.
 
 ```{r}
 # read tile at 10:38 from Feb 7th 2021 in Houston
-houston05_02_07 <- read_stars(here("data", "VNP46A1", "VNP46A1.A2021038.h08v05.001.2021039064328.tif"))
+houston05_02_07 <- read_stars(here("data", "VNP46A1", "VNP46A1.A2021038.h08v05.001.2021039064328.tif"), quiet = TRUE)
 
 # read tile at 10:38 from Feb 7th 2021 in Houston
-houston06_02_07 <- read_stars(here("data", "VNP46A1", "VNP46A1.A2021038.h08v06.001.2021039064329.tif"))
+houston06_02_07 <- read_stars(here("data", "VNP46A1", "VNP46A1.A2021038.h08v06.001.2021039064329.tif"), quiet = TRUE)
 
 # read tile at 10:47 from Feb 16th 2021 in Houston
-houston05_02_16 <- read_stars(here("data", "VNP46A1", "VNP46A1.A2021047.h08v05.001.2021048091106.tif"))
+houston05_02_16 <- read_stars(here("data", "VNP46A1", "VNP46A1.A2021047.h08v05.001.2021048091106.tif"), quiet = TRUE)
 
 # read tile at 10:47 from Feb 16th 2021 in Houston
-houston06_02_16 <- read_stars(here("data", "VNP46A1", "VNP46A1.A2021047.h08v06.001.2021048091105.tif"))
+houston06_02_16 <- read_stars(here("data", "VNP46A1", "VNP46A1.A2021047.h08v06.001.2021048091105.tif"), quiet = TRUE)
+```
+
+## Combine tiles by date
+
+We must first combine the February 7th and February 16th rasters, as they both represent different parts of the city.
+
+```{r}
+# combine feb 7th rasters
+feb_7_combined <- st_mosaic(houston06_02_07, houston05_02_07)
+plot(feb_7_combined)
+
+# combine feb 16th rasters
+feb_16_combined <- st_mosaic(houston06_02_16, houston05_02_16)
+plot(feb_16_combined)
 ```
 
 ## Roads vector of Houston, TX
 
-Read in vector data of roads in Houston, TX.
+Our roads vector comes from Open Street Map - a database which contains spatial data of streets, buildings, and footpaths. We must ensure that this data is used as a vector using the vect() function.
 
 ```{r}
 # get roads as a vector
 roads <- st_read(here("data", "gis_osm_roads_free_1.gpkg"), 
-                 query = "SELECT * FROM gis_osm_roads_free_1 WHERE fclass='motorway'")
-
-# make a vector for roads
-roads_vec <- vect(roads)
+                 query = "SELECT * FROM gis_osm_roads_free_1 WHERE fclass='motorway'",
+                 quiet = TRUE)
 ```
 
 ## Buildings
+
+Our buildings vector, like our roads vector, also comes from Open Street Map. These data will come in as polygons.
 
 ```{r}
 # get buildings as a vector
 buildings <- st_read(here("data", "gis_osm_buildings_a_free_1.gpkg"),
                      query = "SELECT * FROM gis_osm_buildings_a_free_1 WHERE (type IS NULL AND name IS NULL) OR type in ('residential', 'apartments', 'house','static_caravan', 'detached')", 
                      quiet= TRUE)
-
-# make a vector of buildings
-buildings_vec <- vect(buildings)
 ```
 
 ## Census data from Texas
@@ -101,6 +116,10 @@ census_income <- st_read(here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb"),
                   layer = "X19_INCOME", 
                   quiet = TRUE)
 
+# remove all digits from GEOID but the last 11
+census_income <- census_income |>
+  mutate(GEOID = str_replace(GEOID, "^14000US", "")) 
+
 # left join income and geometry
 census_join <- left_join(census_geo, census_income, by = "GEOID")
 ```
@@ -116,26 +135,17 @@ To ensure that our spatial data matches in CRS, we will first have to check what
 Assuming all of the tile data are in the same CRS, we will test the CRS of one of them.
 
 ```{r}
-# get CRS of Houston light data (06 tile)
-st_crs(houston06_02_07)
-
-# get CRS of Houston light data (05 tile)
-st_crs(houston05_02_16)
-
-# check that they match
+# check that tiles match
 st_crs(houston06_02_07) == st_crs(houston05_02_16) # they do!
 ```
 
 The Houston light data uses WGS 84 (EPSG 4326). We will match all of our other data to this CRS using the st_transform() function.
 
-Now we will transform our roads vector to match the CRS of the Houston light data (EPSG 4326).
+Now we will transform our roads sf to match the CRS of the Houston light data (EPSG 4326).
 
 ```{r}
-# check CRS of roads
-st_crs(roads_vec) # roads also use EPSG 4326!
-
 # double check that they are an exact match
-st_crs(roads_vec) == st_crs(houston06_02_16) # true!
+st_crs(roads) == st_crs(houston06_02_16) # true!
 ```
 
 The roads from Open Street Map share the same CRS as the Houston light data. Now, we can check to see that the demographic data from the U.S. Census Bureau matches as well. It is likely that because the U.S. Census data and
@@ -144,16 +154,16 @@ The roads from Open Street Map share the same CRS as the Houston light data. Now
 
 ```{r}
 # check to see if the census data has a CRS
-st_crs(census_join) == st_crs(roads_vec) # false
+st_crs(census_join) == st_crs(roads) # false
 
-# check CRS of census data
-st_crs(census_join)
-
-# use st_transform() to change the CRS of census data
-census_join_reproj <- st_transform (census_join, st_crs(houston05_02_07))
-
-# check that CRSs match
-st_crs(census_join_reproj) == st_crs(houston05_02_07) # true!
+# check and transform CRS
+if(st_crs(census_join) == st_crs(houston05_02_07)){
+  print("Coordinate reference systems match.")
+}else{
+  warning("Updating coordinate reference systems to match.")
+  #transform data to match
+  census_join_reproj <- st_transform(census_join, st_crs(houston05_02_07))
+}
 ```
 
 Now that all of the CRSs match for all of our data, we can begin our data manipulations to prepare them for analysis.
@@ -161,20 +171,6 @@ Now that all of the CRSs match for all of our data, we can begin our data manipu
 # Houston blackout map
 
 To better understand which areas were impacted by the February 16th blackout, we will subtract the cell values in our light intensity tiles from before and after the blackout to get the difference.
-
-## Combine tiles by date
-
-We must first combine the February 7th and February 16th rasters, as they both represent different parts of the city.
-
-```{r}
-# combine feb 7th rasters
-feb_7_combined <- st_mosaic(houston06_02_07, houston05_02_07)
-plot(feb_7_combined)
-
-# combine feb 16th rasters
-feb_16_combined <- st_mosaic(houston06_02_16, houston05_02_16)
-plot(feb_16_combined)
-```
 
 ## Plot before and after
 
@@ -184,22 +180,22 @@ We will plot the light intensity map before and after the blackout. To do this, 
 # load 'viridis' package for visuals
 library(viridisLite)
 
+# create 1 row with 2 columns
+par(mfrow = c(1, 2))  
 
-# plot combined Feb 7th raster
-feb_7_plot <- plot(feb_7_combined,
-     col = viridis(256), # color palette
+# plot of february 7th 2021 light intesnity
+plot(feb_7_combined, 
+     col = viridis(256),
      main = "Before - Feb 7, 2021",
      axes = TRUE)
 
-# plot combined Feb 16th raster
-feb_16_plot <- plot(feb_16_combined,
+# plot of february 16th 2021 light intesnity
+plot(feb_16_combined, 
      col = viridis(256),
      main = "After - Feb 16, 2021",
      axes = TRUE)
 
-# bring in patchwork to combine plots
-library(patchwork)
-feb_7_plot + feb_16_plot
+par(mfrow = c(1, 1))  
 ```
 
 ## Difference in light intensity
@@ -224,7 +220,7 @@ mask_sf <- st_as_sf(difference, as_points = FALSE, merge = TRUE) |>
 
 Now, we will create a bounding box for the city of Houston.
 
-```{r}
+```{r results='hide'}
 # create bbox for the city of Houston
 houston_boundary <- st_bbox(c(
   xmin = -96.5,
@@ -235,8 +231,6 @@ houston_boundary <- st_bbox(c(
 
 # vectorize the boundary
 houston <- st_as_sfc(houston_boundary)
-
-st_crs(houston)
 ```
 
 ## Crop blackout mask
@@ -252,7 +246,10 @@ blackout_houston <- mask_sf[mask_sf %>% st_intersects(houston, sparse = FALSE), 
 
 # show all areas where >200 difference
 tm_shape(blackout_houston)+
-  tm_polygons()
+  tm_polygons() +
+  tm_scale_bar(position = c("left", "bottom"))+
+  tm_compass()+
+  tm_title(text = "Map of Blackout Areas")
 ```
 
 Now that we have a map of more intense blackouts, we can bring in the roads data and exclude any polygons within 200m of the road.
@@ -261,7 +258,7 @@ Now that we have a map of more intense blackouts, we can bring in the roads data
 
 We have a roads vector which shares the same CRS as our other data, but because we want to create a buffer that is in meters, we have to change the CRS. Houston, TX uses EPSG 3083. We should be able to preserve the spatial data we have and convert to EPSG 3083 from WGS 84 (EPSG 4326).
 
-```{r}
+```{r results='hide'}
 # check roads CRS
 st_crs(roads) # EPSG 4326
 
@@ -293,10 +290,10 @@ Because roads are associated with larger changes in light intensity, we want to 
 
 St_disjoint() would have also worked, but would have excluded any polygons touching the roads at all.
 
-```{r}
+```{r results='hide'}
 # check classes
-class(roads_union)
-class(blackout_houston_trans)
+class(roads_union) # multipolygon
+class(blackout_houston_trans) # sf
 
 # check CRS
 st_crs(blackout_houston_trans) == st_crs(roads_union) # EPSG 3083
@@ -316,13 +313,15 @@ no_roads_blackout <- blackout_houston_trans[disjoint_logical, ]
 
 Now, we want to see which homes lost power from the storm. Since we already have a map of polygons with strong differences in light intensity, we can use st_intersects to keep only the homes and bulidings that overlap with the areas of strong power loss.
 
-## Convert CRS back to EPSG 4326
+## Convert back to EPSG 4326
 
 Because we had to create a buffer in meters, our no_roads_blackout sf is no loner in EPSG 4326, but is instead in EPSG 3083. We will fix this by converting it back right now.
 
 ```{r}
 # convert blackout map back to 4326
 no_roads_blackout_trans <- st_transform(no_roads_blackout, crs = 4326)
+
+# reproject buildings
 
 # check to make sure it matches 'buildings'
 st_crs(no_roads_blackout_trans) == st_crs(buildings) # true!
@@ -339,7 +338,7 @@ blackout_buildings <- buildings |>
   st_filter(y = no_roads_blackout_trans, .predicate = st_intersects)
 
 # get the sum of homes that experienced blackout
-print(nrow(blackout_buildings))
+cat("Number of buildings with blackout:", nrow(blackout_buildings), "\n")
 ```
 
 The total number of homes affected by the blackout was **133,804**. This is also the number of observations we had in our "blackout_buildings" sf. Each building is one polygon in the 'geometry' column.
@@ -353,11 +352,11 @@ Now, we can use tmap to create a map of the homes that lost their power as a res
 tm_shape(houston)+
   tm_polygons()+
   tm_shape(roads)+
-  tm_lines()+
+  tm_lines(col = "#440154")+
   tm_shape(blackout_buildings)+
-  tm_bubbles(size = 0.2,
-          col = "red")+
-  tm_title(text = "Homes that experienced blackout")+
+  tm_bubbles(size = 0.1,
+          col = "#26828E")+
+  tm_title(text = "Homes With Blackout")+
   tm_scalebar(position = "bottom")+
   tm_compass()
 ```
@@ -371,27 +370,53 @@ Next, we would like to know what the median income of households experiencing bl
 Now we can create a map of census tracts which lost power. We will do this by filtering the census tract polygons to include those that have overlapping geometries with buildings that experienced blackout.
 
 ```{r}
-# check CRSs
-st_crs(census_join) == st_crs(blackout_buildings) # false
-
-# change CRS of census data to match buildings
-census_trans <- st_transform(census_join, crs = 4326)
-
 #check CRS now
-st_crs(census_trans) == st_crs(blackout_buildings) # true!
+st_crs(census_join_reproj) == st_crs(blackout_buildings) # true!
 
 # get tracts with buildings in them
-census_blackout <- census_trans |>
+census_blackout <- census_join_reproj |>
   st_filter(y = blackout_buildings, .predicate = st_intersects)
 
 # plot using tmap
 tm_shape(houston)+
   tm_polygons("grey80")+
-  tm_shape(census_join)+
-  tm_polygons()+
+  tm_shape(census_join_reproj)+
+  tm_polygons(col = "#440154")+
   tm_shape(census_blackout)+
-  tm_polygons(fill = "red")+
-  tm_title(text = "Map of Census Tracts Experiencing Blackout")+
+  tm_polygons(fill = "#26828E")+
+  tm_title(text = "Map of Census Tracts With Blackout")+
   tm_scalebar(position = "bottom")+
   tm_compass()
 ```
+
+As we can see, there were quite a few census tracts that experienced blackouts. While not every resident in these areas experienced blackout, we can see that the impact of the storms covered a very large area of the city.
+
+## Median income of blackout homes
+
+Next, we will get the median income of homes that experienced blackout in the Houston area. We need the income information contained in the census_income dataset to be combined with the geometries from the census_geo dataset. This will allows us to filter the census tracts that experienced blackout and get the median income for those. It will also allow us to get the number of homes in each.
+
+We will use ggplot to visualize the distribution of median household income for census tracts that lost power. First, we must create a column in our income_join_reproj for blackouts that is yes/no. Then we must dissolve the geometries.
+
+```{r}
+# make column of yes/no for if the census experienced a blackout or not
+census_join_reproj <- census_join_reproj |>
+  mutate(in_blackout = if_else(GEOID %in% census_blackout$GEOID, "yes", "no"))
+
+# dissolve geometries, group by blackout y/n, and calculate the mean
+census_join_reproj_df <- census_join_reproj |>
+  st_drop_geometry() |>
+  group_by(in_blackout)|>
+  summarise(median_value = median(B19013e1, na.rm = TRUE))
+  
+
+# plot median income of blackout census tracts
+median_income_plot <- ggplot(census_join_reproj_df, aes(x = in_blackout, 
+                                                        y = median_value))+
+  geom_bar(stat = "identity", fill = "#26828E") +
+  labs(x = "Blackout Area", y = "Median Income") +
+  theme_minimal()
+```
+
+# Discussion
+
+Ultimately there is not a large difference in the economic status of people in Houston, Texas who experienced blackout vs. those who did not.
