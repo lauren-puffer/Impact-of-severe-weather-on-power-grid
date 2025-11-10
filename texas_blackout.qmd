@@ -16,7 +16,9 @@ theme: journal
 
 # README
 
+```{r}
 ![](images/Screenshot 2025-11-09 at 7.05.04 PM.png){fig-align="center"}
+```
 
 # Introduction
 
