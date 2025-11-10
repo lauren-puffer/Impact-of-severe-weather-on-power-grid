@@ -14,6 +14,8 @@ toc: TRUE
 theme: journal
 ---
 
+![](images/Screenshot 2025-11-09 at 7.05.04 PM.png)
+
 # Introduction
 
 This analysis investigates the spatial and socioeconomic impact of a blackout event in Houston, Texas. Using nighttime light satellite imagery, we quantify changes in light intensity by comparing data from before the blackout to data from after. By calculating the difference in light intensity, we can identify which areas experienced reduced lighting and are likely to have been affected by the blackout.
@@ -267,7 +269,7 @@ We will use st_intersects() with the Houston boundary box and the difference mas
 
 ```{r}
 # get crs of mask
-st_crs(mask_sf) # 4326
+crs_mask <- st_crs(mask_sf) # 4326
 
 # use st_intersects() to get just the area of blackout difference in the bbox
 blackout_houston <- mask_sf[mask_sf |>
