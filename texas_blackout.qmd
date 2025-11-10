@@ -16,19 +16,26 @@ theme: journal
 
 # Introduction
 
+This analysis investigates the spatial and socioeconomic impact of a blackout event in Houston, Texas. Using nighttime light satellite imagery, we quantify changes in light intensity by comparing data from before the blackout to data from after. By calculating the difference in light intensity, we can identify which areas experienced reduced lighting and are likely to have been affected by the blackout.
+
+To understand the social implications of the blackout, we use these spatial observations with demographic data from EJ Screen. We want to know the number of homes impacted, make a map of the affected census tracts, and examine the median income of residents in tracts affected by the blackout versus those that were not. This approach allows us to assess both the spatial distribution and the socioeconomic factors of the blackout’s impact, providing insights into infrastructure capacity and social equity.
+
 # Data Sources
 
 Open Street Map: <https://planet.openstreetmap.org/>
 
 U.S. Census: <https://www.census.gov/data/datasets.html>
 
-Blackout data:
+Blackout data: <https://planet.openstreetmap.org/>
+
+EJ Screen data: EJ SCREENEPA, 2024, "Environmental Justice Mapping and Screening Tool (EJScreen)", <https://doi.org/10.7910/DVN/RLR5AX>, Harvard Dataverse, V4, UNF:6:Ew64oHBMGoTrNkLoYBJcUw== \[fileUNF\]
 
 # Load packages
 
 ```{r}
 #| message: false
 #| warning: false 
+
 library(terra)
 library(tmap)
 library(here)
@@ -39,6 +46,7 @@ library(spData) # spatial data
 library(spDataLarge) # spatial data
 library(geodata)
 library(stars)
+library(viridisLite) # for colorblind friendy visuals
 ```
 
 # Load data
@@ -48,6 +56,9 @@ library(stars)
 Raster data of light intensity from before (February 7th, 2021) and after (February 16th, 2021) is contained in the following rasters. Because Houston is such a large city, we must bring two "tiles" together to create a complete map of the cities light intensity on these two days.
 
 ```{r}
+#| message: false
+#| warning: false
+
 # read tile at 10:38 from Feb 7th 2021 in Houston
 houston05_02_07 <- read_stars(here("data", "VNP46A1", "VNP46A1.A2021038.h08v05.001.2021039064328.tif"), quiet = TRUE)
 
@@ -66,6 +77,9 @@ houston06_02_16 <- read_stars(here("data", "VNP46A1", "VNP46A1.A2021047.h08v06.0
 We must first combine the February 7th and February 16th rasters, as they both represent different parts of the city.
 
 ```{r}
+#| message: false
+#| warning: false
+
 # combine feb 7th rasters
 feb_7_combined <- st_mosaic(houston06_02_07, houston05_02_07)
 plot(feb_7_combined)
@@ -80,6 +94,9 @@ plot(feb_16_combined)
 Our roads vector comes from Open Street Map - a database which contains spatial data of streets, buildings, and footpaths. We must ensure that this data is used as a vector using the vect() function.
 
 ```{r}
+#| message: false
+#| warning: false
+
 # get roads as a vector
 roads <- st_read(here("data", "gis_osm_roads_free_1.gpkg"), 
                  query = "SELECT * FROM gis_osm_roads_free_1 WHERE fclass='motorway'",
@@ -91,6 +108,9 @@ roads <- st_read(here("data", "gis_osm_roads_free_1.gpkg"),
 Our buildings vector, like our roads vector, also comes from Open Street Map. These data will come in as polygons.
 
 ```{r}
+#| message: false
+#| warning: false
+
 # get buildings as a vector
 buildings <- st_read(here("data", "gis_osm_buildings_a_free_1.gpkg"),
                      query = "SELECT * FROM gis_osm_buildings_a_free_1 WHERE (type IS NULL AND name IS NULL) OR type in ('residential', 'apartments', 'house','static_caravan', 'detached')", 
@@ -102,6 +122,9 @@ buildings <- st_read(here("data", "gis_osm_buildings_a_free_1.gpkg"),
 We will need to use a datasbase that has geometries and combine it with our 'census' dataframe. Our 'census' datafram contains GEOID's which will allow us to join with another dataset conatining the correct geometries needed to check the CRS and complete our analysis.
 
 ```{r}
+#| message: false
+#| warning: false
+
 # get list of layers in .gdb
 st_layers(here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb"))
 
@@ -177,9 +200,6 @@ To better understand which areas were impacted by the February 16th blackout, we
 We will plot the light intensity map before and after the blackout. To do this, we will use tmap.
 
 ```{r}
-# load 'viridis' package for visuals
-library(viridisLite)
-
 # create 1 row with 2 columns
 par(mfrow = c(1, 2))  
 
@@ -187,13 +207,15 @@ par(mfrow = c(1, 2))
 plot(feb_7_combined, 
      col = viridis(256),
      main = "Before - Feb 7, 2021",
-     axes = TRUE)
+     axes = TRUE,
+     legend = TRUE)
 
 # plot of february 16th 2021 light intesnity
 plot(feb_16_combined, 
      col = viridis(256),
      main = "After - Feb 16, 2021",
-     axes = TRUE)
+     axes = TRUE,
+     legend = TRUE)
 
 par(mfrow = c(1, 1))  
 ```
@@ -242,7 +264,8 @@ We will use st_intersects() with the Houston boundary box and the difference mas
 st_crs(mask_sf) # 4326
 
 # use st_intersects() to get just the area of blackout difference in the bbox
-blackout_houston <- mask_sf[mask_sf %>% st_intersects(houston, sparse = FALSE), ]
+blackout_houston <- mask_sf[mask_sf |>
+                              st_intersects(houston, sparse = FALSE), ]
 
 # show all areas where >200 difference
 tm_shape(blackout_houston)+
@@ -413,8 +436,11 @@ census_join_reproj_df <- census_join_reproj |>
 median_income_plot <- ggplot(census_join_reproj_df, aes(x = in_blackout, 
                                                         y = median_value))+
   geom_bar(stat = "identity", fill = "#26828E") +
-  labs(x = "Blackout Area", y = "Median Income") +
+  labs(x = "Blackout Area", y = "Median Income (USD)") +
   theme_minimal()
+
+# show the plot
+print(median_income_plot)
 ```
 
 # Discussion
