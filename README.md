@@ -6,7 +6,9 @@ All of the data housed in this repository is open-access and free to use. We ext
 
 **Open Street Map:** <https://planet.openstreetmap.org/>
 
-**U.S. Census:** <https://www.census.gov/data/datasets.html>
+**U.S. Census:** U.S. Census Bureau. (2020). *American Community Survey 5‑Year Estimates, 2019, Census Tracts, Texas (ACS_2019_5YR_TRACT_48_TEXAS).* Geodatabase, layer: “ACS_2019_5YR_TRACT_48_TEXAS”. U.S. Department of Commerce.
+
+Website: <https://www.census.gov/data/datasets.html>
 
 **Blackout data:** VIIRS Land SIPS. (2019). *VIIRS/NPP Daily Gridded Day Night Band 500 m Linear Lat Lon Grid Night (VNP46A1) [Data set].* NASA/GSFC/SED/ESD/HBSL/BISB/LAADS. <https://doi.org/10.5067/VIIRS/VNP46A1.001>
 
