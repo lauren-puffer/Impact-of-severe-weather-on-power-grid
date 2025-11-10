@@ -1,7 +1,7 @@
 ---
 title: "Impact of severe weather on the power grid"
 author: "Lauren Puffer"
-date: "2025-11-07"
+date: "2025-11-09"
 format: html
 editor: visual
 embed-resources: true
@@ -22,13 +22,13 @@ To understand the social implications of the blackout, we use these spatial obse
 
 # Data Sources
 
-Open Street Map: <https://planet.openstreetmap.org/>
+**Open Street Map:** <https://planet.openstreetmap.org/>
 
-U.S. Census: <https://www.census.gov/data/datasets.html>
+**U.S. Census:** <https://www.census.gov/data/datasets.html>
 
-Blackout data: <https://planet.openstreetmap.org/>
+**Blackout data:** VIIRS Land SIPS. (2019). *VIIRS/NPP Daily Gridded Day Night Band 500 m Linear Lat Lon Grid Night (VNP46A1) \[Data set\].* NASA/GSFC/SED/ESD/HBSL/BISB/LAADS. <https://doi.org/10.5067/VIIRS/VNP46A1.001>
 
-EJ Screen data: EJ SCREENEPA, 2024, "Environmental Justice Mapping and Screening Tool (EJScreen)", <https://doi.org/10.7910/DVN/RLR5AX>, Harvard Dataverse, V4, UNF:6:Ew64oHBMGoTrNkLoYBJcUw== \[fileUNF\]
+**EJ Screen data:** EJ SCREENEPA, 2024, "Environmental Justice Mapping and Screening Tool (EJScreen)", <https://doi.org/10.7910/DVN/RLR5AX>, Harvard Dataverse, V4, UNF:6:Ew64oHBMGoTrNkLoYBJcUw== \[fileUNF\]
 
 # Load packages
 
@@ -126,7 +126,7 @@ We will need to use a datasbase that has geometries and combine it with our 'cen
 #| warning: false
 
 # get list of layers in .gdb
-st_layers(here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb"))
+st_layers(here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb")) # X19_INCOME will be used
 
 # load census geopackage for 2019
 census_geo <- st_read(here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb"), 
@@ -206,16 +206,14 @@ par(mfrow = c(1, 2))
 # plot of february 7th 2021 light intesnity
 plot(feb_7_combined, 
      col = viridis(256),
-     main = "Before - Feb 7, 2021",
-     axes = TRUE,
-     legend = TRUE)
+     main = "Light Intensity Feb 7, 2021",
+     axes = TRUE)
 
 # plot of february 16th 2021 light intesnity
 plot(feb_16_combined, 
      col = viridis(256),
      main = "After - Feb 16, 2021",
-     axes = TRUE,
-     legend = TRUE)
+     axes = TRUE)
 
 par(mfrow = c(1, 1))  
 ```
