@@ -155,9 +155,7 @@ To ensure that our spatial data matches in CRS, we will first have to check what
 
 Assuming all of the tile data are in the same CRS, we will test the CRS of one of them.
 
-```{r}
-#| message: false
-#| warning: false
+```{r results='hide'}
 
 # check that tiles match
 st_crs(houston06_02_07) == st_crs(houston05_02_16) # they do!
@@ -167,9 +165,7 @@ The Houston light data uses WGS 84 (EPSG 4326). We will match all of our other d
 
 Now we will transform our roads sf to match the CRS of the Houston light data (EPSG 4326).
 
-```{r}
-#| message: false
-#| warning: false
+```{r results='hide'}
 
 # double check that they are an exact match
 st_crs(roads) == st_crs(houston06_02_16) # true!
@@ -181,7 +177,7 @@ The roads from Open Street Map share the same CRS as the Houston light data. Now
 
 ```{r}
 # check to see if the census data has a CRS
-st_crs(census_join) == st_crs(roads) # false
+crs_check_roads <- st_crs(census_join) == st_crs(roads) # false
 
 # check and transform CRS
 if(st_crs(census_join) == st_crs(houston05_02_07)){
@@ -350,9 +346,7 @@ Now, we want to see which homes lost power from the storm. Since we already have
 
 Because we had to create a buffer in meters, our no_roads_blackout sf is no loner in EPSG 4326, but is instead in EPSG 3083. We will fix this by converting it back right now.
 
-```{r}
-#| message: false
-#| warning: false
+```{r results='hide'}
 
 # convert blackout map back to 4326
 no_roads_blackout_trans <- st_transform(no_roads_blackout, crs = 4326)
@@ -366,12 +360,6 @@ st_crs(no_roads_blackout_trans) == st_crs(buildings) # true!
 Now that our CRSs match, we can find homes and buildings that overlap with our blackout areas. This will allow us to get both a map of the homes that experienced blackout, and a total \# of homes that experienced blackout as well.
 
 ```{r}
-#| message: false
-#| warning: false
-
-# check that crs match
-st_crs(no_roads_blackout_trans) == st_crs(buildings) # true
-
 # get buildings that intersect the no_roads polygons
 blackout_buildings <- buildings |>
   st_filter(y = no_roads_blackout_trans, .predicate = st_intersects)
@@ -410,7 +398,7 @@ Now we can create a map of census tracts which lost power. We will do this by fi
 
 ```{r}
 #check CRS now
-st_crs(census_join_reproj) == st_crs(blackout_buildings) # true!
+crs_check <- st_crs(census_join_reproj) == st_crs(blackout_buildings) # true!
 
 # get tracts with buildings in them
 census_blackout <- census_join_reproj |>
