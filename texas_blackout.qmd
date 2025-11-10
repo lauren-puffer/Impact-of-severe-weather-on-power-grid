@@ -14,10 +14,6 @@ toc: TRUE
 theme: journal
 ---
 
-# README
-
-![](images/Screenshot%202025-11-09%20at%207.05.04%20PM.png){fig-align="center" width="900"}
-
 # Introduction
 
 This analysis investigates the spatial and socioeconomic impact of a blackout event in Houston, Texas. Using nighttime light satellite imagery, we quantify changes in light intensity by comparing data from before the blackout to data from after. By calculating the difference in light intensity, we can identify which areas experienced reduced lighting and are likely to have been affected by the blackout.
@@ -160,6 +156,9 @@ To ensure that our spatial data matches in CRS, we will first have to check what
 Assuming all of the tile data are in the same CRS, we will test the CRS of one of them.
 
 ```{r}
+#| message: false
+#| warning: false
+
 # check that tiles match
 st_crs(houston06_02_07) == st_crs(houston05_02_16) # they do!
 ```
@@ -169,6 +168,9 @@ The Houston light data uses WGS 84 (EPSG 4326). We will match all of our other d
 Now we will transform our roads sf to match the CRS of the Houston light data (EPSG 4326).
 
 ```{r}
+#| message: false
+#| warning: false
+
 # double check that they are an exact match
 st_crs(roads) == st_crs(houston06_02_16) # true!
 ```
@@ -349,6 +351,9 @@ Now, we want to see which homes lost power from the storm. Since we already have
 Because we had to create a buffer in meters, our no_roads_blackout sf is no loner in EPSG 4326, but is instead in EPSG 3083. We will fix this by converting it back right now.
 
 ```{r}
+#| message: false
+#| warning: false
+
 # convert blackout map back to 4326
 no_roads_blackout_trans <- st_transform(no_roads_blackout, crs = 4326)
 
@@ -361,6 +366,9 @@ st_crs(no_roads_blackout_trans) == st_crs(buildings) # true!
 Now that our CRSs match, we can find homes and buildings that overlap with our blackout areas. This will allow us to get both a map of the homes that experienced blackout, and a total \# of homes that experienced blackout as well.
 
 ```{r}
+#| message: false
+#| warning: false
+
 # check that crs match
 st_crs(no_roads_blackout_trans) == st_crs(buildings) # true
 
