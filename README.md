@@ -4,13 +4,13 @@
 
 All of the data housed in this repository is open-access and free to use. We extracted data from the following sources.
 
-Open Street Map: <https://planet.openstreetmap.org/>
+**Open Street Map:** <https://planet.openstreetmap.org/>
 
-U.S. Census: <https://www.census.gov/data/datasets.html>
+**U.S. Census:** <https://www.census.gov/data/datasets.html>
 
-Blackout data:
+**Blackout data:** VIIRS Land SIPS. (2019). *VIIRS/NPP Daily Gridded Day Night Band 500 m Linear Lat Lon Grid Night (VNP46A1) [Data set].* NASA/GSFC/SED/ESD/HBSL/BISB/LAADS. <https://doi.org/10.5067/VIIRS/VNP46A1.001>
 
-EJ Screen data: EJ SCREENEPA, 2024, "Environmental Justice Mapping and Screening Tool (EJScreen)", <https://doi.org/10.7910/DVN/RLR5AX>, Harvard Dataverse, V4, UNF:6:Ew64oHBMGoTrNkLoYBJcUw== [fileUNF]
+**EJ Screen data:** EJ SCREENEPA, 2024, "Environmental Justice Mapping and Screening Tool (EJScreen)", <https://doi.org/10.7910/DVN/RLR5AX>, Harvard Dataverse, V4, UNF:6:Ew64oHBMGoTrNkLoYBJcUw== [fileUNF]
 
 ## Repository layout
 
