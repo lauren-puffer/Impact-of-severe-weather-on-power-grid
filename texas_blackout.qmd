@@ -18,7 +18,7 @@ theme: journal
 
 This analysis investigates the spatial and socioeconomic impact of a blackout event in Houston, Texas. Using nighttime light satellite imagery, we quantify changes in light intensity by comparing data from before the blackout to data from after. By calculating the difference in light intensity, we can identify which areas experienced reduced lighting and are likely to have been affected by the blackout.
 
-To understand the social implications of the blackout, we use these spatial observations with demographic data from EJ Screen. We want to know the number of homes impacted, make a map of the affected census tracts, and examine the median income of residents in tracts affected by the blackout versus those that were not. This approach allows us to assess both the spatial distribution and the socioeconomic factors of the blackout’s impact, providing insights into infrastructure capacity and social equity.
+To understand the social implications of the blackout, we use these spatial observations with demographic data from the U.S. Census Bureau and Open Street Map. We want to know the number of homes impacted, make a map of the affected census tracts, and examine the median income of residents in tracts affected by the blackout versus those that were not. This approach allows us to assess both the spatial distribution and the socioeconomic factors of the blackout’s impact, providing insights into infrastructure capacity and social equity.
 
 # Data Sources
 
@@ -29,8 +29,6 @@ To understand the social implications of the blackout, we use these spatial obse
 Website: <https://www.census.gov/data/datasets.html>
 
 **Blackout data:** VIIRS Land SIPS. (2019). *VIIRS/NPP Daily Gridded Day Night Band 500 m Linear Lat Lon Grid Night (VNP46A1) \[Data set\].* NASA/GSFC/SED/ESD/HBSL/BISB/LAADS. <https://doi.org/10.5067/VIIRS/VNP46A1.001>
-
-**EJ Screen data:** EJ SCREENEPA, 2024, "Environmental Justice Mapping and Screening Tool (EJScreen)", <https://doi.org/10.7910/DVN/RLR5AX>, Harvard Dataverse, V4, UNF:6:Ew64oHBMGoTrNkLoYBJcUw== \[fileUNF\]
 
 # Load packages
 
@@ -76,7 +74,7 @@ houston06_02_16 <- read_stars(here("data", "VNP46A1", "VNP46A1.A2021047.h08v06.0
 
 ## Combine tiles by date
 
-We must first combine the February 7th and February 16th rasters, as they both represent different parts of the city.
+We must first combine the February 7th and February 16th rasters, as they both represent contain parts of the city.
 
 ```{r}
 #| message: false
@@ -197,28 +195,51 @@ Now that all of the CRSs match for all of our data, we can begin our data manipu
 
 To better understand which areas were impacted by the February 16th blackout, we will subtract the cell values in our light intensity tiles from before and after the blackout to get the difference.
 
-## Plot before and after
+## Plot of light intensity before and after the storm
 
-We will plot the light intensity map before and after the blackout. To do this, we will use tmap.
+We will plot the light intensity map before and after the blackout. To do this, we will use the plot() function.
+
+First, we will create a bounding box for the city of Houston to crop our stars rasters to.
+
+```{r results='hide'}
+# create bbox for the city of Houston
+houston_boundary <- st_bbox(c(
+  xmin = -96.5,
+  ymin = 29,
+  xmax = -94.5,
+  ymax = 30.5
+), crs = st_crs(4326))  # WGS84 lon/lat
+
+# vectorize the boundary
+houston <- st_as_sfc(houston_boundary)
+```
 
 ```{r}
+# crop february 7 raster to Houston extent
+feb_7_cropped <- st_crop(feb_7_combined, houston)
+
+# crop february 16 raster to Houston extent
+feb_16_cropped <- st_crop(feb_16_combined, houston)
+
 # create 1 row with 2 columns
 par(mfrow = c(1, 2))  
 
 # plot of february 7th 2021 light intesnity
-plot(feb_7_combined, 
+plot(feb_7_cropped, 
      col = viridis(256),
      main = "Light Intensity Feb 7, 2021",
      axes = TRUE)
 
 # plot of february 16th 2021 light intesnity
-plot(feb_16_combined, 
+plot(feb_16_cropped, 
      col = viridis(256),
-     main = "After - Feb 16, 2021",
+     main = "Light Intensity Feb 16, 2021",
      axes = TRUE)
 
 par(mfrow = c(1, 1))  
 ```
+
+You can see in the two images that much of the street lights went out in the Houston area. Light intensity became much more patchy in the central part of Houston after the blackout occurred.
 
 ## Difference in light intensity
 
@@ -238,21 +259,6 @@ Now we need to make a vector of the difference so that we can create a mask of a
 # create a vector of the difference
 mask_sf <- st_as_sf(difference, as_points = FALSE, merge = TRUE) |>
   st_make_valid()
-```
-
-Now, we will create a bounding box for the city of Houston.
-
-```{r results='hide'}
-# create bbox for the city of Houston
-houston_boundary <- st_bbox(c(
-  xmin = -96.5,
-  ymin = 29,
-  xmax = -94.5,
-  ymax = 30.5
-), crs = st_crs(4326))  # WGS84 lon/lat
-
-# vectorize the boundary
-houston <- st_as_sfc(houston_boundary)
 ```
 
 ## Crop blackout mask
@@ -400,6 +406,7 @@ st_crs(census_join_reproj) == st_crs(blackout_buildings) # true!
 census_blackout <- census_join_reproj |>
   st_filter(y = blackout_buildings, .predicate = st_intersects)
 
+
 # plot using tmap
 tm_shape(houston)+
   tm_polygons("grey80")+
@@ -430,14 +437,18 @@ census_join_reproj_df <- census_join_reproj |>
   st_drop_geometry() |>
   group_by(in_blackout)|>
   summarise(median_value = median(B19013e1, na.rm = TRUE))
-  
 
-# plot median income of blackout census tracts
-median_income_plot <- ggplot(census_join_reproj_df, aes(x = in_blackout, 
-                                                        y = median_value))+
-  geom_bar(stat = "identity", fill = "#26828E") +
-  labs(x = "Blackout Area", y = "Median Income (USD)") +
-  theme_minimal()
+# try this
+median_income_plot <- ggplot(census_join_reproj_df, 
+                             aes(x = in_blackout, y = median_value, fill = in_blackout)) +
+  geom_col() +
+    scale_fill_manual(values = c("yes" = "#26828E",    # blackout
+                               "no" = "#440154")) + # no blackout
+  labs(x = "Blackout Area", 
+       y = "Median Income (USD)", 
+       title = "Median Income of Residents by Blackout Impact") +
+  theme_minimal() +
+  theme(legend.position = "none")
 
 # show the plot
 print(median_income_plot)
@@ -445,4 +456,12 @@ print(median_income_plot)
 
 # Discussion
 
-Ultimately there is not a large difference in the economic status of people in Houston, Texas who experienced blackout vs. those who did not.
+There is not a large difference in the economic status of people in Houston, Texas who experienced blackout vs. those who did not.Those that experienced blackout actually had median incomes which were moderately higher than those that didn't. Ultimately, this blackout is affecting people across socioeconomic status. One thing which may impact residents in the future, is the cost of home and auto insurance following the storm. The storms in February of 2021 in Houston created a loss of between 10 and 20 billion dollars for insured residents, making it one of the most expensive storms in the state's history (Cappelletti, 2021). That number was later revised to be up tp 200 billion dollars if you factor in the cost to the energy sector (Ivanova, 2021). Much of the loss of energy could be experienced in publicly owned utilities like street lamps. However, our analysis has focused primarily on residential loss, so we cannot say for certain if that is truly the case. The storm event in Houston in February of 2021 seemed to have a much more widespread impact across socioeconomic status than say Hurricane Katrina, which devastated much of the black community, people experiencing poverty, and elderly citizens (Gabe, McCarty, & Falk, 2005). If the impact were similar to Hurricane Katrina, we would have seen the median income of those impacted being noticeably lower than those that did not experience a blackout for example.
+
+## References
+
+Cappelletti, A. (2021, June). *Texas Winter Storm 2021: Accounting for subsequent events*. General Insurance Section News, June 2021. Society of Actuaries. [https://www.soa.org/news-and-publications/newsletters/general-insurance/2021/june/gii-2021-06/texas-winter-storm-2021-accounting-for-subsequent-events/](https://www.soa.org/news-and-publications/newsletters/general-insurance/2021/june/gii-2021-06/texas-winter-storm-2021-accounting-for-subsequent-events/?utm_source=chatgpt.com)
+
+Gabe, T., McCarty, M., & Falk, G. (2005, November 4). Hurricane Katrina: Social‑demographic characteristics of impacted areas (CRS Report No. RL33141). Congressional Research Service. <https://www.everycrsreport.com/reports/RL33141.html>
+
+Ivanova, I. (2021, February 19). *Texas winter storm costs could top \$200 billion — more than hurricanes Harvey and Ike*. CBS News. [https://www.cbsnews.com/news/texas-winter-storm-uri-costs/](https://www.cbsnews.com/news/texas-winter-storm-uri-costs/?utm_source=chatgpt.com)
