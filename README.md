@@ -2,6 +2,16 @@
 
 ## Data sources
 
+All of the data housed in this repository is open-access and free to use. We extracted data from the following sources.
+
+Open Street Map: <https://planet.openstreetmap.org/>
+
+U.S. Census: <https://www.census.gov/data/datasets.html>
+
+Blackout data:
+
+EJ Screen data: EJ SCREENEPA, 2024, "Environmental Justice Mapping and Screening Tool (EJScreen)", <https://doi.org/10.7910/DVN/RLR5AX>, Harvard Dataverse, V4, UNF:6:Ew64oHBMGoTrNkLoYBJcUw== [fileUNF]
+
 ## Repository layout
 
 ```{r}
@@ -18,3 +28,11 @@ Impact-of-severe-weather-on-power-grid
         └───VNP46A1
             └───VIIRS data files
 ```
+
+## Authors
+
+Owner of repository: Lauren Puffer
+
+## Acknowledgments
+
+I would like to acknowledge the two poeople who taught me these data manipulation and visualization skills, Annie Adams and Alessandra Vidal Meza. I would also like to thank my classmate Garrett Craig, for trouble shooting this assignment with me and discussing the workflow.
