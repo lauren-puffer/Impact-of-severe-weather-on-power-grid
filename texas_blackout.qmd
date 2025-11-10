@@ -237,7 +237,7 @@ plot(feb_16_cropped,
 par(mfrow = c(1, 1))  
 ```
 
-You can see in the two images that much of the street lights went out in the Houston area. Light intensity became much more patchy in the central part of Houston after the blackout occurred.
+You can see in the two images that much of the street lights went out in the Houston area. Light intensity became much more patchy in the central part of Houston after the blackout occurred. Most of the intensity shown in the scale bar is on the higher end, with little to no light intensity being blue.
 
 ## Difference in light intensity
 
