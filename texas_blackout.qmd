@@ -82,11 +82,9 @@ We must first combine the February 7th and February 16th rasters, as they both r
 
 # combine feb 7th rasters
 feb_7_combined <- st_mosaic(houston06_02_07, houston05_02_07)
-plot(feb_7_combined)
 
 # combine feb 16th rasters
 feb_16_combined <- st_mosaic(houston06_02_16, houston05_02_16)
-plot(feb_16_combined)
 ```
 
 ## Roads vector of Houston, TX
