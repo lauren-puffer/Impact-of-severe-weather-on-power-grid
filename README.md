@@ -12,8 +12,6 @@ Website: <https://www.census.gov/data/datasets.html>
 
 **Blackout data:** VIIRS Land SIPS. (2019). *VIIRS/NPP Daily Gridded Day Night Band 500 m Linear Lat Lon Grid Night (VNP46A1) [Data set].* NASA/GSFC/SED/ESD/HBSL/BISB/LAADS. <https://doi.org/10.5067/VIIRS/VNP46A1.001>
 
-**EJ Screen data:** EJ SCREENEPA, 2024, "Environmental Justice Mapping and Screening Tool (EJScreen)", <https://doi.org/10.7910/DVN/RLR5AX>, Harvard Dataverse, V4, UNF:6:Ew64oHBMGoTrNkLoYBJcUw== [fileUNF]
-
 ## Repository layout
 
 ```{r}
