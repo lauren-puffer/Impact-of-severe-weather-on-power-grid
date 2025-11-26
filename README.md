@@ -1,5 +1,7 @@
 # Impact of severe weather on power grid
 
+This analysis examines the spatial and socioeconomic impacts of a blackout in Houston, Texas. Using nighttime satellite imagery, we compare light intensity before and after the event to identify areas that experienced reduced lighting. We pair these spatial patterns with demographic data from the U.S. Census Bureau and OpenStreetMap to estimate the number of homes affected, map impacted census tracts, and compare median incomes between affected and unaffected areas. This approach highlights both the geographic extent of the blackout and its social implications.
+
 ## Data sources
 
 All of the data housed in this repository is open-access and free to use. We extracted data from the following sources.
