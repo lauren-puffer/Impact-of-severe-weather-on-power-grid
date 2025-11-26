@@ -14,7 +14,7 @@ toc: TRUE
 theme: journal
 ---
 
-[README](https://github.com/lauren-puffer/Impact-of-severe-weather-on-power-grid/blob/main/README.md#impact-of-severe-weather-on-power-grid)
+![](images/screenshot.png)
 
 # Introduction
 
