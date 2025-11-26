@@ -385,9 +385,22 @@ tm_shape(houston)+
   tm_shape(blackout_buildings)+
   tm_bubbles(size = 0.1,
           col = "#26828E")+
-  tm_title(text = "Homes With Blackout")+
+  tm_title(text = "Homes With Blackout in Houston, TX")+
   tm_scalebar(position = "bottom")+
-  tm_compass()
+  tm_compass()+
+    tm_add_legend(
+    type = "line",
+    labels = "Roads",
+    col = "#440154",
+    lwd = 2
+  ) +
+  tm_add_legend(
+    type = "symbol",
+    labels = "Homes With Blackout",
+    col = "#26828E",
+    size = 0.4
+  ) +
+  tm_layout(legend.outside = TRUE)
 ```
 
 # Median income of households
@@ -416,7 +429,20 @@ tm_shape(houston)+
   tm_polygons(fill = "#26828E")+
   tm_title(text = "Map of Census Tracts With Blackout")+
   tm_scalebar(position = "bottom")+
-  tm_compass()
+  tm_compass()+
+      tm_add_legend(
+    type = "line",
+    labels = "Roads",
+    col = "#440154",
+    lwd = 2
+  ) +
+  tm_add_legend(
+    type = "fill",
+    labels = "Census Tracts With Blackout",
+    col = "#26828E",
+    size = 0.4
+  ) +
+  tm_layout(legend.outside = TRUE)
 ```
 
 As we can see, there were quite a few census tracts that experienced blackouts. While not every resident in these areas experienced blackout, we can see that the impact of the storms covered a very large area of the city.
