@@ -14,8 +14,6 @@ toc: TRUE
 theme: journal
 ---
 
-![](images/screenshot.png)
-
 # Introduction
 
 This analysis investigates the spatial and socioeconomic impact of a blackout event in Houston, Texas. Using nighttime light satellite imagery, we quantify changes in light intensity by comparing data from before the blackout to data from after. By calculating the difference in light intensity, we can identify which areas experienced reduced lighting and are likely to have been affected by the blackout.
